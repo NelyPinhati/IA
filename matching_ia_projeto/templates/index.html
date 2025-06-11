@@ -3,41 +3,161 @@
 <head>
     <meta charset="UTF-8" />
     <title>Matching IA com Upload</title>
+   <style>
+    body {
+        background: linear-gradient(120deg, #2d7ff9 0%, #f4f6fb 100%);
+        font-family: 'Segoe UI', Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+    }
+    .container {
+        max-width: 600px;
+        margin: 40px auto;
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 8px 32px rgba(44, 127, 249, 0.10), 0 1.5px 6px rgba(0,0,0,0.06);
+        padding: 40px 40px 40px 40px;
+        position: relative;
+    }
+    .logo {
+        display: block;
+        margin: 0 auto 28px auto;
+        width: 200px;
+        filter: drop-shadow(0 4px 16px rgba(44,127,249,0.15));
+        transition: transform 0.2s;
+    }
+    .logo:hover {
+        transform: scale(1.05);
+    }
+    h1 {
+        text-align: center;
+        color: #2d3a4b;
+        margin-bottom: 32px;
+        font-size: 2.1em;
+        letter-spacing: 1px;
+    }
+    form {
+        margin-bottom: 24px;
+    }
+    h3 {
+        color: #3b4a5a;
+        margin-top: 24px;
+        margin-bottom: 8px;
+        font-size: 1.1em;
+    }
+    input[type="file"] {
+        margin-bottom: 8px;
+    }
+    textarea {
+        width: 100%;
+        border-radius: 8px;
+        border: 1.5px solid #d1d9e6;
+        padding: 12px;
+        font-size: 1em;
+        margin-bottom: 14px;
+        resize: vertical;
+        box-shadow: 0 2px 8px rgba(44,127,249,0.04);
+        transition: border 0.2s;
+    }
+    textarea:focus {
+        border: 1.5px solid #2d7ff9;
+        outline: none;
+    }
+    button[type="submit"] {
+        background: linear-gradient(90deg, #2d7ff9 60%, #1c5ecb 100%);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 14px 36px;
+        font-size: 1.15em;
+        cursor: pointer;
+        margin-top: 18px;
+        box-shadow: 0 2px 8px rgba(44,127,249,0.10);
+        font-weight: bold;
+        letter-spacing: 0.5px;
+        transition: background 0.2s, transform 0.2s;
+    }
+    button[type="submit"]:hover {
+        background: linear-gradient(90deg, #1c5ecb 60%, #2d7ff9 100%);
+        transform: translateY(-2px) scale(1.03);
+    }
+    hr {
+        margin: 32px 0 24px 0;
+        border: none;
+        border-top: 1px solid #e2e6ee;
+    }
+    h2, h3 {
+        color: #2d3a4b;
+    }
+    ul {
+        background: #f7faff;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 24px;
+        box-shadow: 0 1px 4px rgba(44,127,249,0.04);
+    }
+    pre {
+        background: #f7faff;
+        border-radius: 8px;
+        padding: 12px;
+        overflow-x: auto;
+        box-shadow: 0 1px 4px rgba(44,127,249,0.04);
+    }
+    a {
+        color: #2d7ff9;
+        text-decoration: none;
+        font-weight: bold;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+    @media (max-width: 700px) {
+        .container {
+            padding: 16px 8px;
+        }
+        .logo {
+            width: 120px;
+        }
+    }
+</style>
 </head>
 <body>
-    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" width="150" />
-    <h1>Teste Matching - Envie vaga e CV</h1>
+    <div class="container">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo" />
+        <h1>Teste Matching - Envie vaga e CV</h1>
 
-    <form method="post" enctype="multipart/form-data">
-        <h3>Vaga (arquivo PDF/DOCX ou texto)</h3>
-        <input type="file" name="vaga_file" accept=".pdf,.doc,.docx" /><br />
-        <textarea name="vaga_texto" rows="6" cols="60" placeholder="Ou escreva a vaga aqui..."></textarea>
+        <form method="post" enctype="multipart/form-data">
+            <h3>Vaga (arquivo PDF/DOCX ou texto)</h3>
+            <input type="file" name="vaga_file" accept=".pdf,.doc,.docx" /><br />
+            <textarea name="vaga_texto" rows="6" cols="60" placeholder="Ou escreva a vaga aqui..."></textarea>
 
-        <h3>Currículo (arquivo PDF/DOCX ou texto)</h3>
-        <input type="file" name="cv_file" accept=".pdf,.doc,.docx" /><br />
-        <textarea name="cv_texto" rows="6" cols="60" placeholder="Ou escreva o currículo aqui..."></textarea>
+            <h3>Currículo (arquivo PDF/DOCX ou texto)</h3>
+            <input type="file" name="cv_file" accept=".pdf,.doc,.docx" /><br />
+            <textarea name="cv_texto" rows="6" cols="60" placeholder="Ou escreva o currículo aqui..."></textarea>
 
-        <br /><button type="submit">Calcular Matching</button>
-    </form>
+            <br /><button type="submit">Calcular Matching</button>
+        </form>
 
-    {% if resultado %}
-    <hr />
-    <h2>Resultado</h2>
-    <p><strong>Score:</strong> {{ resultado.score }}%</p>
-    <p><strong>Explicações:</strong></p>
-    <ul>
-        {% for exp in resultado.explicacoes %}
-            <li>{{ exp }}</li>
-        {% endfor %}
-    </ul>
+        {% if resultado %}
+        <hr />
+        <h2>Resultado</h2>
+        <p><strong>Score:</strong> {{ resultado.score }}%</p>
+        <p><strong>Explicações:</strong></p>
+        <ul>
+            {% for exp in resultado.explicacoes %}
+                <li>{{ exp }}</li>
+            {% endfor %}
+        </ul>
 
-    <h3>Texto extraído da vaga</h3>
-    <pre>{{ resultado.vaga_texto }}</pre>
+        <h3>Texto extraído da vaga</h3>
+        <pre>{{ resultado.vaga_texto }}</pre>
 
-    <h3>Texto extraído do currículo</h3>
-    <pre>{{ resultado.cv_texto }}</pre>
+        <h3>Texto extraído do currículo</h3>
+        <pre>{{ resultado.cv_texto }}</pre>
 
-    <a href="{{ url_for('relatorio', analise_id=resultado.id) }}" target="_blank">Baixar relatório em PDF</a>
-    {% endif %}
+        <a href="{{ url_for('relatorio', analise_id=resultado.id) }}" target="_blank">Baixar relatório em PDF</a>
+        {% endif %}
+    </div>
 </body>
 </html>
