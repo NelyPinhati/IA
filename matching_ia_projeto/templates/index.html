@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <title>Matching IA com Upload</title>
+</head>
+<body>
+    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" width="150" />
+    <h1>Teste Matching - Envie vaga e CV</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        <h3>Vaga (arquivo PDF/DOCX ou texto)</h3>
+        <input type="file" name="vaga_file" accept=".pdf,.doc,.docx" /><br />
+        <textarea name="vaga_texto" rows="6" cols="60" placeholder="Ou escreva a vaga aqui..."></textarea>
+
+        <h3>Currículo (arquivo PDF/DOCX ou texto)</h3>
+        <input type="file" name="cv_file" accept=".pdf,.doc,.docx" /><br />
+        <textarea name="cv_texto" rows="6" cols="60" placeholder="Ou escreva o currículo aqui..."></textarea>
+
+        <br /><button type="submit">Calcular Matching</button>
+    </form>
+
+    {% if resultado %}
+    <hr />
+    <h2>Resultado</h2>
+    <p><strong>Score:</strong> {{ resultado.score }}%</p>
+    <p><strong>Explicações:</strong></p>
+    <ul>
+        {% for exp in resultado.explicacoes %}
+            <li>{{ exp }}</li>
+        {% endfor %}
+    </ul>
+
+    <h3>Texto extraído da vaga</h3>
+    <pre>{{ resultado.vaga_texto }}</pre>
+
+    <h3>Texto extraído do currículo</h3>
+    <pre>{{ resultado.cv_texto }}</pre>
+
+    <a href="{{ url_for('relatorio', analise_id=resultado.id) }}" target="_blank">Baixar relatório em PDF</a>
+    {% endif %}
+</body>
+</html>
