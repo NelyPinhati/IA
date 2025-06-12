@@ -25,12 +25,13 @@
         .logo {
             display: block;
             margin: 0 auto 28px auto;
-            width: 200px;
+            width: 140px;
+            max-width: 60vw;
             filter: drop-shadow(0 4px 16px rgba(44,127,249,0.15));
             transition: transform 0.2s;
         }
         .logo:hover {
-            transform: scale(1.05);
+            transform: scale(1.08);
         }
         h1 {
             text-align: center;
@@ -57,7 +58,7 @@
         textarea {
             width: 100%;
             border-radius: 8px;
-            border: 1.5px solid #d1d9e6;
+            border: 1.5px solid #d1d4e6;
             padding: 12px;
             font-size: 1em;
             margin-bottom: 14px;
@@ -151,6 +152,44 @@
         .fa-file-arrow-up, .fa-user, .fa-briefcase, .fa-circle-check, .fa-file-pdf, .fa-spinner, .fa-file-arrow-down {
             color: #2d7ff9;
         }
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #f7faff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(44,127,249,0.06);
+            margin-bottom: 24px;
+        }
+        .result-table th, .result-table td {
+            padding: 12px 10px;
+            text-align: center;
+            border-bottom: 1px solid #e2e6ee;
+        }
+        .result-table th {
+            background: #eaf2fd;
+            color: #2d7ff9;
+            font-size: 1.08em;
+        }
+        .result-table tr:last-child td {
+            border-bottom: none;
+        }
+        .score-cell {
+            font-weight: bold;
+            color: #1c7c3c;
+            font-size: 1.1em;
+        }
+        .gap-badge {
+             display: inline-block;
+            background: #ffeaea;
+            color: #c0392b;
+             border-radius: 6px;
+            padding: 2px 8px;
+            margin: 2px 2px 2px 0;
+            font-size: 0.97em;
+            font-weight: 500;
+            border: 1px solid #f5b7b1;
+        }
         @media (max-width: 700px) {
             .container {
                 padding: 16px 8px;
@@ -180,37 +219,52 @@
 
         <form method="post" enctype="multipart/form-data">
             <h3><i class="fa-solid fa-briefcase"></i> Vaga (arquivo PDF/DOCX ou texto)</h3>
-            <input type="file" name="vaga_file" accept=".pdf,.doc,.docx" />
+            <input type="file" name="vaga_file" accept=".pdf,.doc,.docx" multiple />
             <textarea name="vaga_texto" rows="6" cols="60" placeholder="Ou escreva a vaga aqui..."></textarea>
 
             <h3><i class="fa-solid fa-user"></i> Currículo (arquivo PDF/DOCX ou texto)</h3>
-            <input type="file" name="cv_file" accept=".pdf,.doc,.docx" />
+            <input type="file" name="cv_file" accept=".pdf,.doc,.docx" multiple />
             <textarea name="cv_texto" rows="6" cols="60" placeholder="Ou escreva o currículo aqui..."></textarea>
 
             <br />
             <button type="submit"><i class="fa-solid fa-file-arrow-up"></i> Calcular Matching</button>
         </form>
 
-        {% if resultado %}
+        {% if resultados %}
         <hr />
-        <h2><i class="fa-solid fa-file-pdf"></i> Resultado</h2>
-        <p><strong>Score:</strong> {{ resultado.score }}%</p>
-        <p><strong>Explicações:</strong></p>
-        <ul>
-            {% for exp in resultado.explicacoes %}
-                <li>{{ exp }}</li>
+        <h2 style="display:flex;align-items:center;gap:10px;background:#eaf2fd;padding:10px 18px;border-radius:8px;">
+            <i class="fa-solid fa-file-pdf" style="color:#2d7ff9;"></i> Resultados
+        </h2>
+        <table class="result-table">
+            <tr>
+                <th>Vaga</th>
+                <th>Currículo</th>
+                <th>Score</th>
+                <th>Gaps</th>
+                <th>PDF</th>
+            </tr>
+            {% for r in resultados %}
+            <tr>
+                <td>{{ r.vaga_nome }}</td>
+                <td>{{ r.cv_nome }}</td>
+                <td class="score-cell">{{ r.score }}%</td>
+                <td class="gap-cell">
+    {% if r.gaps %}
+        {% for gap in r.gaps %}
+            <span class="gap-badge">{{ gap }}</span>
+        {% endfor %}
+    {% else %}
+        Nenhum gap
+    {% endif %}
+</td>>
+                <td>
+                    <a href="{{ url_for('relatorio', analise_id=r.id) }}" target="_blank" title="Baixar PDF">
+                        <i class="fa-solid fa-file-arrow-down"></i>
+                    </a>
+                </td>
+            </tr>
             {% endfor %}
-        </ul>
-
-        <h3>Texto extraído da vaga</h3>
-        <pre>{{ resultado.vaga_texto }}</pre>
-
-        <h3>Texto extraído do currículo</h3>
-        <pre>{{ resultado.cv_texto }}</pre>
-
-        <a href="{{ url_for('relatorio', analise_id=resultado.id) }}" target="_blank">
-            <i class="fa-solid fa-file-arrow-down"></i> Baixar relatório em PDF
-        </a>
+        </table>
         {% endif %}
     </div>
     <script>

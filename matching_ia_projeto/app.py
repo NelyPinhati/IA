@@ -9,6 +9,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 import fitz  # PyMuPDF
 import docx
+import re
 
 app = Flask(__name__)
 
@@ -16,7 +17,6 @@ app = Flask(__name__)
 engine = create_engine("sqlite:///analises.db")
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
-
 
 # Funções utilitárias para leitura de arquivos
 def extrair_texto_pdf(path):
@@ -26,7 +26,6 @@ def extrair_texto_pdf(path):
             texto += page.get_text()
     return texto.strip()
 
-
 def extrair_texto_docx(path):
     texto = ""
     doc = docx.Document(path)
@@ -34,53 +33,91 @@ def extrair_texto_docx(path):
         texto += p.text + "\n"
     return texto.strip()
 
+def extrair_palavras_chave(texto):
+    """Extrai palavras-chave relevantes de um texto, ignorando stopwords."""
+    stopwords = set([
+        "de", "da", "do", "e", "a", "o", "as", "os", "em", "para", "com", "por", "um", "uma", "na", "no", "que", "é", "ser", "ou", "dos", "das"
+        # Adicione mais stopwords conforme necessário
+    ])
+    palavras = re.findall(r'\b\w{3,}\b', texto.lower())
+    palavras_chave = [p for p in palavras if p not in stopwords]
+    return list(set(palavras_chave))
 
 # Página principal
 @app.route("/", methods=["GET", "POST"])
 def index():
-    resultado = None
-
+    resultados = []
     if request.method == "POST":
         vaga_texto = request.form.get("vaga_texto", "")
         cv_texto = request.form.get("cv_texto", "")
 
-        vaga_file = request.files.get("vaga_file")
-        cv_file = request.files.get("cv_file")
+        vaga_files = request.files.getlist('vaga_file')
+        cv_files = request.files.getlist('cv_file')
 
-        if vaga_file and vaga_file.filename:
-            ext = vaga_file.filename.split(".")[-1].lower()
-            path = "temp_vaga." + ext
-            vaga_file.save(path)
-            vaga_texto = extrair_texto_pdf(path) if ext == "pdf" else extrair_texto_docx(path)
+        # Processa cada vaga
+        for vaga_file in vaga_files if vaga_files else [None]:
+            if vaga_file and vaga_file.filename:
+                ext_vaga = vaga_file.filename.split(".")[-1].lower()
+                path_vaga = "temp_vaga." + ext_vaga
+                vaga_file.save(path_vaga)
+                vaga_texto_atual = extrair_texto_pdf(path_vaga) if ext_vaga == "pdf" else extrair_texto_docx(path_vaga)
+                vaga_nome = vaga_file.filename
+            else:
+                vaga_texto_atual = vaga_texto  # Se não enviou arquivo, usa texto digitado
+                vaga_nome = "Texto digitado"
 
-        if cv_file and cv_file.filename:
-            ext = cv_file.filename.split(".")[-1].lower()
-            path = "temp_cv." + ext
-            cv_file.save(path)
-            cv_texto = extrair_texto_pdf(path) if ext == "pdf" else extrair_texto_docx(path)
+            # Processa cada currículo para cada vaga
+            for cv_file in cv_files if cv_files else [None]:
+                if cv_file and cv_file.filename:
+                    ext_cv = cv_file.filename.split(".")[-1].lower()
+                    path_cv = "temp_cv." + ext_cv
+                    cv_file.save(path_cv)
+                    if os.path.getsize(path_cv) > 0:
+                        cv_texto_atual = extrair_texto_pdf(path_cv) if ext_cv == "pdf" else extrair_texto_docx(path_cv)
+                        cv_nome = cv_file.filename
+                    else:
+                        cv_texto_atual = ""
+                        cv_nome = "Arquivo vazio"
+                else:
+                    cv_texto_atual = cv_texto  # Se não enviou arquivo, usa texto digitado
+                    cv_nome = "Texto digitado"
 
-        score, explicacoes = calcular_matching(cv_texto, vaga_texto)
+                # Extração de palavras-chave
+                palavras_chave_vaga = extrair_palavras_chave(vaga_texto_atual)
+                palavras_chave_cv = extrair_palavras_chave(cv_texto_atual)
 
-        session = Session()
-        analise = Analise(
-            vaga=vaga_texto,
-            curriculo=cv_texto,
-            score=score,
-            explicacoes="\n".join(explicacoes)
-        )
-        session.add(analise)
-        session.commit()
+                # Score: % de palavras-chave da vaga presentes no CV
+                palavras_encontradas = [p for p in palavras_chave_vaga if p in palavras_chave_cv]
+                palavras_nao_encontradas = [p for p in palavras_chave_vaga if p not in palavras_chave_cv]
+                score = round(len(palavras_encontradas) / len(palavras_chave_vaga) * 100, 2) if palavras_chave_vaga else 0
 
-        resultado = {
-            "score": score,
-            "explicacoes": explicacoes,
-            "id": analise.id,
-            "vaga_texto": vaga_texto,
-            "cv_texto": cv_texto
-        }
+                explicacoes = [
+                    f"Palavras-chave da vaga: {', '.join(palavras_chave_vaga)}",
+                    f"Palavras-chave encontradas no CV: {', '.join(palavras_encontradas)}",
+                    f"Palavras-chave não encontradas: {', '.join(palavras_nao_encontradas)}"
+                ]
 
-    return render_template("index.html", resultado=resultado)
+                session = Session()
+                analise = Analise(
+                    vaga=vaga_texto_atual,
+                    curriculo=cv_texto_atual,
+                    score=score,
+                    explicacoes="\n".join(explicacoes)
+                )
+                session.add(analise)
+                session.commit()
+                resultados.append({
+                    "score": score,
+                    "explicacoes": explicacoes,
+                    "id": analise.id,
+                    "vaga_texto": vaga_texto_atual,
+                    "cv_texto": cv_texto_atual,
+                    "vaga_nome": vaga_nome,
+                    "cv_nome": cv_nome,
+                    "gaps": palavras_nao_encontradas
+                })
 
+    return render_template("index.html", resultados=resultados)
 
 # Geração de PDF com logo e explicações
 @app.route("/relatorio/<int:analise_id>")
@@ -107,18 +144,33 @@ def relatorio(analise_id):
 
     c.drawString(40, 720, "Explicações:")
     y = 700
+    max_chars = 90  # número máximo de caracteres por linha
+
     for linha in analise.explicacoes.splitlines():
-        if y < 50:
-            c.showPage()
-            y = 800
-        c.drawString(60, y, f"- {linha}")
-        y -= 20
+        palavras = linha.split()
+        linha_atual = "- "
+        for palavra in palavras:
+            if len(linha_atual) + len(palavra) + 1 > max_chars:
+                c.drawString(60, y, linha_atual)
+                y -= 20
+                if y < 50:
+                    c.showPage()
+                    y = 800
+                linha_atual = "  " + palavra + " "
+            else:
+                linha_atual += palavra + " "
+        if linha_atual.strip():
+            c.drawString(60, y, linha_atual)
+            y -= 20
+            if y < 50:
+                c.showPage()
+                y = 800
 
     c.showPage()
     c.save()
-
     return send_file(pdf_path, as_attachment=True)
-
 
 if __name__ == "__main__":
     app.run(debug=True)
+    
+    
